@@ -685,6 +685,12 @@ function AgendaEventRenderer() {
 		var snapHeight = getSnapHeight();
 		var snapDuration = getSnapDuration();
 		var eventEnd;
+		var firstElHeight;
+		if (opt('slotEventOverlap')) {
+			var firstElTop = eventElement.next().css('top');
+			var secondElTop = eventElement.css('top');
+			firstElHeight = parseInt(firstElTop, 10) - parseInt(secondElTop, 10);
+		}
 
 		eventElement.resizable({
 			handles: {
@@ -727,7 +733,8 @@ function AgendaEventRenderer() {
 					showEvents(event, eventElement);
 					// BUG: if event was really short, need to put title back in span
 				}
-			}
+			},
+			maxHeight: firstElHeight
 		});
 	}
 	
