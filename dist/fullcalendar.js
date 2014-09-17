@@ -2028,6 +2028,27 @@ function compensateScroll(rowEls, scrollbarWidths) {
 	}
 }
 
+function collision($div1, $div2) {
+  if ($div1.offset()) {
+    var x1 = $div1.offset().left;
+    var y1 = $div1.offset().top;
+    var h1 = $div1.outerHeight(true);
+    var w1 = $div1.outerWidth(true);
+    var b1 = y1 + h1;
+    var r1 = x1 + w1;
+    var x2 = $div2.offset().left;
+    var y2 = $div2.offset().top;
+    var h2 = $div2.outerHeight(true);
+    var w2 = $div2.outerWidth(true);
+    var b2 = y2 + h2;
+    var r2 = x2 + w2;
+
+    if (b1 < y2 || y1 > b2 || r1 < x2 || x1 > r2) {
+      return false;
+    }
+    return true;
+  }
+}
 
 // Undoes compensateScroll and restores all borders/margins
 function uncompensateScroll(rowEls) {
@@ -4625,63 +4646,93 @@ $.extend(Grid.prototype, {
 
 	// Called when the user does a mousedown on an event's resizer, which might lead to resizing.
 	// Generic enough to work with any type of Grid.
-	segResizeMousedown: function(seg, ev) {
-		var _this = this;
-		var view = this.view;
-		var el = seg.el;
-		var event = seg.event;
-		var start = event.start;
-		var end = view.calendar.getEventEnd(event);
-		var newEnd = null;
-		var dragListener;
+  segResizeMousedown: function(seg,ev) {
+    var _this = this;
+    var view = this.view;
+    var el = seg.el;
+    var event = seg.event;
+    var start = event.start;
+    var end = view.calendar.getEventEnd(event);
+    var newEnd = null;
+    var newEndTemp = null;
+    var dragListener;
+    var collisionNumber = 0;
 
-		function destroy() { // resets the rendering
-			_this.destroyResize();
-			view.showEvent(event);
-		}
+    function destroy() { // resets the rendering
+      _this.destroyResize();
+      view.showEvent(event);
+    }
 
-		// Tracks mouse movement over the *grid's* coordinate map
-		dragListener = new DragListener(this.coordMap, {
-			distance: 5,
-			scroll: view.opt('dragScroll'),
-			dragStart: function(ev) {
-				_this.triggerSegMouseout(seg, ev); // ensure a mouseout on the manipulated event has been reported
-				_this.isResizingSeg = true;
-				view.trigger('eventResizeStart', el[0], event, ev, {}); // last argument is jqui dummy
-			},
-			cellOver: function(cell, date) {
-				// compute the new end. don't allow it to go before the event's start
-				if (date.isBefore(start)) { // allows comparing ambig to non-ambig
-					date = start;
-				}
-				newEnd = date.clone().add(_this.cellDuration); // make it an exclusive end
+    // Tracks mouse movement over the *grid's* coordinate map
+    dragListener = new DragListener(this.coordMap, {
+      distance: 5,
+      scroll: view.opt('dragScroll'),
+      dragStart: function(ev) {
+        _this.triggerSegMouseout(seg, ev); // ensure a mouseout on the manipulated event has been reported
+        _this.isResizingSeg = true;
+        view.trigger('eventResizeStart', el[0], event, ev, {}); // last argument is jqui dummy
+        newEndTemp = false;
+      },
+      cellOver: function(cell, date) {
+        // compute the new end. don't allow it to go before the event's start
+        if (date.isBefore(start)) { // allows comparing ambig to non-ambig
+          date = start;
+        }
+        newEnd = date.clone().add(_this.cellDuration); // make it an exclusive end
+        view.hideEvent(event);
+        if (newEnd.isSame(end)) {
+          newEnd = null;
+          destroy();
+        }
+        else {
+          _this.renderResize(start, newEnd, seg);
+          view.hideEvent(event);
+          _.each(cell.grid.segs, function(seg, segkey) {
+            var tmp = collision(jQuery('.fc-helper'), jQuery('.fc-event:eq(' + segkey + ')'));
+            if (tmp) {
+              if (jQuery('.fc-event:eq(' + segkey + ')').hasClass('editing')) {
+              } else {
+                collisionNumber++;
+                if(!newEndTemp && collisionNumber === 1){
+                  newEndTemp = newEnd;
+                  view.eventResize(el[0], event, newEndTemp, ev);
+                }
+              }
+            }
+          });
+          if(collisionNumber > 0){
+            _this.isResizingSeg = false;
+            destroy();
+            view.trigger('eventResizeStop', el[0], event, ev, {});
+          }else{
+            newEndTemp = false;
+          }
+          collisionNumber = 0;
 
-				if (newEnd.isSame(end)) {
-					newEnd = null;
-					destroy();
-				}
-				else {
-					_this.renderResize(start, newEnd, seg);
-					view.hideEvent(event);
-				}
-			},
-			cellOut: function() { // called before mouse moves to a different cell OR moved out of all cells
-				newEnd = null;
-				destroy();
-			},
-			dragStop: function(ev) {
-				_this.isResizingSeg = false;
-				destroy();
-				view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
+        }
+      },
+      cellOut: function() { // called before mouse moves to a different cell OR moved out of all cells
+        newEnd = null;
+        destroy();
+      },
+      dragStop: function(ev) {
+        _this.isResizingSeg = false;
+        destroy();
+        view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
 
-				if (newEnd) {
-					view.eventResize(el[0], event, newEnd, ev); // will rerender all events...
-				}
-			}
-		});
+        if (newEndTemp) {
+          view.eventResize(el[0], event, newEndTemp, ev); // will rerender all events...
+          newEndTemp = false;
+          return false;
+        }
+        if (newEnd) {
+          view.eventResize(el[0], event, newEnd, ev); // will rerender all events...
+        }
+      }
+    });
 
-		dragListener.mousedown(ev); // start listening, which will eventually lead to a dragStart
-	},
+    dragListener.mousedown(ev); // start listening, which will eventually lead to a dragStart
+  },
 
 
 	/* Rendering Utils
