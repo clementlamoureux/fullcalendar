@@ -280,7 +280,7 @@ $.extend(Grid.prototype, {
 
 	// Called when the user does a mousedown on an event's resizer, which might lead to resizing.
 	// Generic enough to work with any type of Grid.
-  segResizeMousedown: function(seg,ev) {
+  segResizeMousedown: function (seg, ev) {
     var _this = this;
     var view = this.view;
     var el = seg.el;
@@ -289,8 +289,7 @@ $.extend(Grid.prototype, {
     var end = view.calendar.getEventEnd(event);
     var newEnd = null;
     var newEndTemp = null;
-    var dragListener;
-    var collisionNumber = 0;
+    var dragListener, collisionNumber ;
 
     function destroy() { // resets the rendering
       _this.destroyResize();
@@ -301,55 +300,51 @@ $.extend(Grid.prototype, {
     dragListener = new DragListener(this.coordMap, {
       distance: 5,
       scroll: view.opt('dragScroll'),
-      dragStart: function(ev) {
+      dragStart: function (ev) {
         _this.triggerSegMouseout(seg, ev); // ensure a mouseout on the manipulated event has been reported
         _this.isResizingSeg = true;
         view.trigger('eventResizeStart', el[0], event, ev, {}); // last argument is jqui dummy
         newEndTemp = false;
       },
-      cellOver: function(cell, date) {
+      cellOver: function (cell, date) {
         // compute the new end. don't allow it to go before the event's start
         if (date.isBefore(start)) { // allows comparing ambig to non-ambig
           date = start;
         }
         newEnd = date.clone().add(_this.cellDuration); // make it an exclusive end
         view.hideEvent(event);
-        if (newEnd.isSame(end)) {
-          newEnd = null;
-          destroy();
-        }
-        else {
-          _this.renderResize(start, newEnd, seg);
-          view.hideEvent(event);
-          _.each(cell.grid.segs, function(seg, segkey) {
-            var tmp = collision(jQuery('.fc-helper'), jQuery('.fc-event:eq(' + segkey + ')'));
-            if (tmp) {
-              if (jQuery('.fc-event:eq(' + segkey + ')').hasClass('editing')) {
-              } else {
-                collisionNumber++;
-                if(!newEndTemp && collisionNumber === 1){
-                  newEndTemp = newEnd;
-                  view.eventResize(el[0], event, newEndTemp, ev);
-                }
+        _this.renderResize(start, newEnd, seg);
+        view.hideEvent(event);
+        var range;
+        var tmpNewEnd = newEnd.clone();
+        range2 = moment().range(start, tmpNewEnd.clone());
+        _.each(cell.grid.segs, function (seg, segkey) {
+          if (seg.event.editable === false) {
+            range = moment().range(moment(seg.start).clone().subtract('h', 2).zone(tmpNewEnd.zone()), moment(seg.end).clone().subtract('h', 2).zone(tmpNewEnd.zone()));
+            if (range2.overlaps(range)) {
+              collisionNumber ++;
+              if (!newEndTemp && collisionNumber === 1) {
+                newEndTemp = newEnd.clone();
               }
             }
-          });
-          if(collisionNumber > 0){
-            _this.isResizingSeg = false;
-            destroy();
-            view.trigger('eventResizeStop', el[0], event, ev, {});
-          }else{
-            newEndTemp = false;
           }
-          collisionNumber = 0;
-
+        });
+        console.log(collisionNumber);
+        if (collisionNumber > 0) {
+          view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
+          _this.isResizingSeg = false;
+          destroy();
+//            view.eventResize(el[0], event, newEndTemp, ev);
+        } else {
+          newEndTemp = newEnd;
         }
+        collisionNumber = 0;
       },
-      cellOut: function() { // called before mouse moves to a different cell OR moved out of all cells
-        newEnd = null;
+      cellOut: function () { // called before mouse moves to a different cell OR moved out of all cells
+//          newEnd = null;
         destroy();
       },
-      dragStop: function(ev) {
+      dragStop: function (ev) {
         _this.isResizingSeg = false;
         destroy();
         view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
@@ -357,10 +352,6 @@ $.extend(Grid.prototype, {
         if (newEndTemp) {
           view.eventResize(el[0], event, newEndTemp, ev); // will rerender all events...
           newEndTemp = false;
-          return false;
-        }
-        if (newEnd) {
-          view.eventResize(el[0], event, newEnd, ev); // will rerender all events...
         }
       }
     });
