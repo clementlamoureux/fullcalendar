@@ -329,19 +329,16 @@ $.extend(Grid.prototype, {
             }
           }
         });
-        console.log(collisionNumber);
         if (collisionNumber > 0) {
           view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
           _this.isResizingSeg = false;
           destroy();
-//            view.eventResize(el[0], event, newEndTemp, ev);
         } else {
           newEndTemp = newEnd;
         }
         collisionNumber = 0;
       },
       cellOut: function () { // called before mouse moves to a different cell OR moved out of all cells
-//          newEnd = null;
         destroy();
       },
       dragStop: function (ev) {
