@@ -311,7 +311,7 @@ $.extend(Grid.prototype, {
         if (date.isBefore(start)) { // allows comparing ambig to non-ambig
           date = start;
         }
-        newEnd = date.clone().add(_this.cellDuration); // make it an exclusive end
+        newEnd = date.clone();
         view.hideEvent(event);
         _this.renderResize(start, newEnd, seg);
         view.hideEvent(event);
@@ -334,11 +334,12 @@ $.extend(Grid.prototype, {
           _this.isResizingSeg = false;
           destroy();
         } else {
-          newEndTemp = newEnd;
+          newEndTemp = date.clone();
         }
         collisionNumber = 0;
       },
       cellOut: function () { // called before mouse moves to a different cell OR moved out of all cells
+//          newEnd = null;
         destroy();
       },
       dragStop: function (ev) {
@@ -352,6 +353,7 @@ $.extend(Grid.prototype, {
         }
       }
     });
+
 
     dragListener.mousedown(ev); // start listening, which will eventually lead to a dragStart
   },
