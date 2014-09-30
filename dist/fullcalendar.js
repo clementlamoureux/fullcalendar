@@ -2250,11 +2250,19 @@ var dayIDs = [ 'sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat' ];
 
 // Diffs the two moments into a Duration where full-days are recorded first, then the remaining time.
 // Moments will have their timezones normalized.
-function dayishDiff(a, b) {
-	return moment.duration({
-		days: a.clone().stripTime().diff(b.clone().stripTime(), 'days'),
-		ms: a.time() - b.time()
-	});
+function dayishDiff(d1, d0) {
+  if (d0) {
+    return moment.duration({
+      days: d1.clone().stripTime().diff(d0.clone().stripTime(), 'days'),
+      ms: d1.time() - d0.time()
+    });
+  }
+  else {
+    return moment.duration({
+      days: d1.clone().stripTime().diff(undefined, 'days'),
+      ms: d1.time() - undefined
+    });
+  }
 }
 
 
