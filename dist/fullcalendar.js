@@ -4658,38 +4658,42 @@ $.extend(Grid.prototype, {
         view.trigger('eventResizeStart', el[0], event, ev, {}); // last argument is jqui dummy
         newEndTemp = false;
       },
-      cellOver: function (cell, date) {
-        // compute the new end. don't allow it to go before the event's start
-        if (date.isBefore(start)) { // allows comparing ambig to non-ambig
-          date = start;
-        }
-        newEnd = date.clone();
-        view.hideEvent(event);
-        _this.renderResize(start, newEnd, seg);
-        view.hideEvent(event);
-        var range;
-        var tmpNewEnd = newEnd.clone();
-        range2 = moment().range(start, tmpNewEnd.clone());
-        _.each(cell.grid.segs, function (seg, segkey) {
-          if (seg.event.editable === false) {
-            range = moment().range(moment(seg.start).clone().subtract('h', 2).zone(tmpNewEnd.zone()), moment(seg.end).clone().subtract('h', 2).zone(tmpNewEnd.zone()));
-            if (range2.overlaps(range)) {
-              collisionNumber ++;
-              if (!newEndTemp && collisionNumber === 1) {
-                newEndTemp = newEnd.clone();
-              }
-            }
-          }
-        });
-        if (collisionNumber > 0) {
-          view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
-          _this.isResizingSeg = false;
-          destroy();
-        } else {
-          newEndTemp = date.clone();
-        }
-        collisionNumber = 0;
-      },
+	  cellOver: function (cell, date) {
+		// compute the new end. don't allow it to go before the event's start
+		if (date.isBefore(start)) { // allows comparing ambig to non-ambig
+		  date = start;
+		}
+		newEnd = date.clone();
+		view.hideEvent(event);
+		_this.renderResize(start, newEnd, seg);
+		view.hideEvent(event);
+		var range;
+		var tmpNewEnd = newEnd.clone();
+		var range2 = moment().range(start, tmpNewEnd.clone());
+		_.each(cell.grid.segs, function (seg, segkey) {
+		  if (seg.event.editable === false) {
+			//console.log(seg.event, moment(seg.start).tz(moment(date).tz()).format(), moment(seg.end).tz(moment(date).tz()).format());
+			range = moment().range(
+			  moment(seg.start.format()).clone(),
+			  moment(seg.end.format()).clone()
+			);
+			if (range2.overlaps(range)) {
+			  collisionNumber ++;
+			  if (!newEndTemp && collisionNumber === 1) {
+				newEndTemp = newEnd.clone();
+			  }
+			}
+		  }
+		});
+		if (collisionNumber > 0) {
+		  view.trigger('eventResizeStop', el[0], event, ev, {}); // last argument is jqui dummy
+		  _this.isResizingSeg = false;
+		  destroy();
+		} else {
+		  newEndTemp = date.clone();
+		}
+		collisionNumber = 0;
+	  },
       cellOut: function () { // called before mouse moves to a different cell OR moved out of all cells
 //          newEnd = null;
         destroy();
