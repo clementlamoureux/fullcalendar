@@ -308,8 +308,9 @@ $.extend(Grid.prototype, {
       },
 	  cellOver: function (cell, date) {
 		// compute the new end. don't allow it to go before the event's start
-		if (date.isBefore(start)) { // allows comparing ambig to non-ambig
-		  date = start;
+		var shiftedStart = start.clone().add('minutes', 15);
+		if (date.isBefore(shiftedStart)) { // allows comparing ambig to non-ambig
+		  date = shiftedStart;
 		}
 		newEnd = date.clone();
 		view.hideEvent(event);
